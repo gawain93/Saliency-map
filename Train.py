@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 28 11:36:43 2017
+
+@author: ga63koh
+"""
+
+'''
+The file used to train the network and evaluate the results
+inputs:
+      data_sets: The name of the datasets
+      data_path: The path to the preprocessed data
+      channels: number of channels of the network
+      tau: number of time dimension of the convolution kernnel
+      rows:number of rows of the convolution kernel
+      cols:number of columns of the convolution kernel
+      batch_size: number of video volumes in each training batch
+      num_epoch: number of epoches for training
+      model_path: if the training is started from the begining, if 1 , start from begin
+'''
+
+from MergeModel import Merge_Model 
+import matplotlib.pyplot as plt
+import os
+from keras.models import load_model
+from Data_Generator_Gazecom import Data_Generator_Gazecom
+from DataLayer_Hollywood import DataLayer_Hollywood
+
+def Train(data_sets,data_path,channels,tau,rows,cols,batch_size,num_epoch,model_path):
+    
+    if model_path is None:
+       M=Merge_Model()
+       model=M.constru_model(channels,tau,rows,cols)
+    else:
+       model=load_model(model_path)   
+       
+    if data_sets=='Gazecom':
+       Data_generator=Data_Generator_Gazecom(data_path,batch_size)
+       train_generator=Data_generator.generate_batch_data()
+       valid_data,valid_labels=Data_generator.generate_vali_data()
+       #valid_data,valid_labels=valid_generator.next()
+       num_train,num_validation,num_test=Data_generator.num_batches()       
+       
+       d,l=train_generator.next()
+       print [d[i].shape for i in range(9)] , num_train
+       history=model.fit_generator(train_generator,steps_per_epoch =num_train ,epochs=num_epoch,validation_data=(valid_data,valid_labels))   
+    if data_sets=='Hollywood':
+       Data_generator=DataLayer_Hollywood(data_path,rows,cols,tau,batch_size,videos_per_batch=5)
+       train_generator=Data_generator.batch_generator()
+       num_points=Data_generator.num_points()
+       history=model.fit_generator(train_generator,steps_per_epoch =num_points//batch_size+1 ,epochs=num_epoch,validation_data=None)   
+     
+       
+    os.chdir(data_path+'/'+'results')
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'], loc='upper left')
+    model.save('my_model.h5')
+    model.save_weights('weights.h5')
+       
+Train('Hollywood',data_path,9,14,60,40,50,1,model_path=None)    
