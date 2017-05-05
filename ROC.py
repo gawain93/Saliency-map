@@ -11,6 +11,7 @@ import numpy as np
 from keras.models import load_model
 from keras.utils import np_utils
 from supersaliency import evaluation
+import matplotlib.pyplot as plt
 
 
 class ROC(object):
@@ -59,11 +60,16 @@ class ROC(object):
     
 
 def test():
-    test_path='/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/test'
+    test_path='/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/Gazecom_batches/test'
     model_path='/home/ga63koh/self study/keras/FP Project/my_model110.h5'
     roc=ROC(test_path,model_path)
     predicted,actual=roc.test_model()
     auc=evaluation.calculate_area_under_curve(predicted, actual, cls=1, random_state=42)
+    tp, fp=evaluation.get_roc_curve(predicted, actual, cls=1)
+    plt.plot(fp, tp)
+    plt.xlabel('False positive rate')
+    plt.ylabel('Ture positive rate')
+    plt.title('Roc Curve')
     
     return auc,predicted,actual
         

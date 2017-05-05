@@ -48,7 +48,8 @@ def Train(data_sets,data_path,channels,tau,rows,cols,batch_size,num_epoch,model_
        Data_generator=DataLayer_Hollywood(data_path,rows,cols,tau,batch_size,videos_per_batch=5)
        train_generator=Data_generator.batch_generator()
        num_points=Data_generator.num_points()
-       history=model.fit_generator(train_generator,steps_per_epoch =num_points//batch_size+1 ,epochs=num_epoch,validation_data=None)   
+       valid_data,valid_labels=Data_generator.valid_data()
+       history=model.fit_generator(train_generator,steps_per_epoch =num_points//batch_size+1 ,epochs=num_epoch,validation_data=(valid_data,valid_labels))   
      
        
     os.chdir(data_path+'/'+'results')
@@ -61,4 +62,5 @@ def Train(data_sets,data_path,channels,tau,rows,cols,batch_size,num_epoch,model_
     model.save('my_model.h5')
     model.save_weights('weights.h5')
        
-Train('Hollywood',data_path,9,14,60,40,50,1,model_path=None)    
+Train('Hollywood',data_path,9,14,60,40,50,1,model_path=None)    # data_path for Gazecom:  '/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/Gazecom_batches'
+                                                                # data_path for hollywood:'/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/hollywood'

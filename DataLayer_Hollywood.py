@@ -26,6 +26,9 @@ class DataLayer_Hollywood(object):
     
     def __init__(self,data_path,crows,ccols,tau,batch_size,videos_per_batch):  #data_path /mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/hollywood_trainh5
         self.data_path=data_path
+        self.train_path=data_path+'/Hollywood_trainh5'
+        self.test_path=data_path+'/Hollywood_testh5'
+        self.valid_path=data_path+'/Hollywood_validh5'
         self.crows=crows
         self.ccols=ccols
         self.tau=tau
@@ -35,7 +38,7 @@ class DataLayer_Hollywood(object):
         
         
     def generate_cards(self):    
-        videos_list=sorted(os.listdir(self.data_path))
+        videos_list=sorted(os.listdir(self.train_path))
         cards=[None]*len(videos_list)
         i=0
         num_points=0
@@ -43,7 +46,7 @@ class DataLayer_Hollywood(object):
     
         for video in videos_list:
             print i
-            read_file=h5py.File(self.data_path+'/'+video,'r')
+            read_file=h5py.File(self.train_path+'/'+video,'r')
             augmented_points=read_file['augmented_points'][:]
             if augmented_points.shape[0] is 0:                   # when there contains no interest points
                print str(video),'skip',i
@@ -148,6 +151,36 @@ class DataLayer_Hollywood(object):
     def num_points(self):
         points_lists=self.generate_cards()
         return len(points_lists)
+        
+        
+    def valid_data(self):
+        listing_vali=os.listdir(self.valid_path)
+        os.chdir(self.valid_path)
+        valid_data=[None]*9
+        while 1:
+            i=0
+            for file in listing_vali:
+                read_file=h5py.File(file,'r')
+                cubes=read_file['cubes'][:]
+                label=read_file['labels'][:]
+                if i==0:
+                    for j in range(9):
+                        valid_data[j]=cubes[:,j,...]
+                        valid_data[j]=valid_data[j].reshape((cubes.shape[0],cubes.shape[2],cubes.shape[3],cubes.shape[4],1))
+                    valid_labels=np_utils.to_categorical(label,2)
+                    i+=1
+                else:
+                    for j in range(9):
+                        tem=cubes[:,j,...]
+                        tem=tem.reshape((tem.shape[0],14,60,40,1))
+                        valid_data[j]=np.append(valid_data[j],tem,axis=0)
+                        
+                    label=np_utils.to_categorical(label,2)
+                    valid_labels=np.append(valid_labels,label,axis=0)
+                    i=i+1
+             
+            return valid_data,valid_labels
+              
     
     def batch_generator(self):
     
@@ -159,7 +192,7 @@ class DataLayer_Hollywood(object):
         previous_video=points_lists[0][0]
         print previous_video
     
-        with h5py.File(self.data_path+'/'+previous_video+'.h5','r') as video_file:
+        with h5py.File(self.train_path+'/'+previous_video+'.h5','r') as video_file:
               video_blobs=video_file['channels'][:]
               print video_blobs.shape
         
@@ -178,7 +211,7 @@ class DataLayer_Hollywood(object):
                     video_name=current_list[i][0]
                 
                     if video_name is not previous_video:
-                       with h5py.File(self.data_path+'/'+video_name+'.h5','r') as video_file:
+                       with h5py.File(self.train_path+'/'+video_name+'.h5','r') as video_file:
                             video_blobs=video_file['channels'][:]
                             print 'changed'
     
@@ -203,12 +236,12 @@ class DataLayer_Hollywood(object):
         
             
 def test():
-    dl=DataLayer_Hollywood('/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/hollywood_trainh5',60,40,14,50,5)
+    dl=DataLayer_Hollywood('/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/hollywood',60,40,14,50,5)
     generator=dl.batch_generator()
-    return generator
+    return generator,dl
     
 if __name__ == "__main__":
-    generator = test()
+    generator ,dl= test()
     b,l=generator.next()
            
         
