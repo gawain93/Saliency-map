@@ -41,9 +41,9 @@ def Normalize(all_framesx,all_framesy,VideoName):
     all_framesx-=minX
     all_framesy-=minY
     all_framesx/= (maxX-minX)
-    #all_framesx*=255
+    all_framesx*=255
     all_framesy /= (maxY-minY)
-    #all_framesy*=255
+    all_framesy*=255
 
 
 video_num=0
@@ -94,12 +94,12 @@ for videos in sorted(glob.glob('*.avi')):
              all_framesx[0,...]=np.zeros(gray.shape).astype('float64')
              all_framesy[0,...]=np.zeros(gray.shape).astype('float64')
              Gray[0,...]=gray/255.
-             Gradx1[0,...]=grdx[...,0]/255.
-             Gradx2[0,...]=grdx[...,1]/255.
-             Gradx3[0,...]=grdx[...,2]/255.
-             Grady1[0,...]=grdy[...,0]/255.
-             Grady2[0,...]=grdx[...,1]/255.
-             Grady3[0,...]=grdx[...,2]/255.
+             Gradx1[0,...]=grdx[...,0]
+             Gradx2[0,...]=grdx[...,1]
+             Gradx3[0,...]=grdx[...,2]
+             Grady1[0,...]=grdy[...,0]
+             Grady2[0,...]=grdx[...,1]
+             Grady3[0,...]=grdx[...,2]
              LastFrame=gray
              
 
@@ -109,12 +109,12 @@ for videos in sorted(glob.glob('*.avi')):
              all_framesx[iteration-2,...]=flow[...,0]
              all_framesy[iteration-2,...]=flow[...,1]
              Gray[iteration-1,...]=gray/255.
-             Gradx1[iteration-1,...]=grdx[...,0]/255.
-             Gradx2[iteration-1,...]=grdx[...,1]/255.
-             Gradx3[iteration-1,...]=grdx[...,2]/255.
-             Grady1[iteration-1,...]=grdy[...,0]/255.
-             Grady2[iteration-1,...]=grdx[...,1]/255.
-             Grady3[iteration-1,...]=grdx[...,2]/255.
+             Gradx1[iteration-1,...]=grdx[...,0]
+             Gradx2[iteration-1,...]=grdx[...,1]
+             Gradx3[iteration-1,...]=grdx[...,2]
+             Grady1[iteration-1,...]=grdy[...,0]
+             Grady2[iteration-1,...]=grdx[...,1]
+             Grady3[iteration-1,...]=grdx[...,2]
              
              
           
@@ -137,11 +137,12 @@ for videos in sorted(glob.glob('*.avi')):
     del Grady3
     del all_framesx
     del all_framesy
-    gc = util.datasets.load_gazecom(out_size=util.Size(144,256))
+    gc = util.datasets.load_gazecom(handlabelling_expert='ioannis',out_size=util.Size(144,256))
     
     file_name= gc['ground_truth'][video_num]['filename']
-    file_name=file_name.split('/')[-1]   # the last '/' in the file name is the video name
-    file_name=file_name.split('_')[0]
+    file_name=file_name.split('/')[:-1]   # the last '/' in the file name is the video name
+    file_name=file_name[-1]
+    print videos.split('.')[0], file_name
     assert videos.split('.')[0]==file_name
     
     augmented_points, augmented_labels = util.GroundTruthHandler.augment_with_negative_samples(gc['ground_truth'][video_num]) 

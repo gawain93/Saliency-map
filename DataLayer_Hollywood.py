@@ -28,7 +28,6 @@ class DataLayer_Hollywood(object):
         self.data_path=data_path
         self.train_path=data_path+'/Hollywood_trainh5'
         self.test_path=data_path+'/Hollywood_testh5'
-        self.valid_path=data_path+'/Hollywood_validh5'
         self.crows=crows
         self.ccols=ccols
         self.tau=tau
@@ -59,7 +58,7 @@ class DataLayer_Hollywood(object):
             augmented_labels=shuffler[:,3]
             del shuffler
             video_name=video.split(".")[0]
-            cards[i]=(video_name,augmented_points,augmented_labels)
+            cards[i]=(video_name,augmented_points,augmented_labels) #
             print video_name
             i+=1
             
@@ -154,42 +153,73 @@ class DataLayer_Hollywood(object):
         
         
     def valid_data(self):
-        listing_vali=os.listdir(self.valid_path)
-        os.chdir(self.valid_path)
-        valid_data=[None]*9
-        while 1:
-            i=0
-            for file in listing_vali:
-                read_file=h5py.File(file,'r')
-                cubes=read_file['cubes'][:]
-                label=read_file['labels'][:]
-                if i==0:
-                    for j in range(9):
-                        valid_data[j]=cubes[:,j,...]
-                        valid_data[j]=valid_data[j].reshape((cubes.shape[0],cubes.shape[2],cubes.shape[3],cubes.shape[4],1))
-                    valid_labels=np_utils.to_categorical(label,2)
-                    i+=1
-                else:
-                    for j in range(9):
-                        tem=cubes[:,j,...]
-                        tem=tem.reshape((tem.shape[0],14,60,40,1))
-                        valid_data[j]=np.append(valid_data[j],tem,axis=0)
-                        
-                    label=np_utils.to_categorical(label,2)
-                    valid_labels=np.append(valid_labels,label,axis=0)
-                    i=i+1
-             
-            return valid_data,valid_labels
+        points_lists=self.generate_cards()[:100]
+        print len(points_lists)
+       
+        previous_video=points_lists[0][0]   # video name is in first dim
+        print previous_video
+    
+        with h5py.File(self.train_path+'/'+previous_video+'.h5','r') as video_file:
+              video_blobs=video_file['channels'][:]
+              print video_blobs.shape
+        
+        while 1:                
+              valid_data=np.ndarray([len(points_lists),9,self.tau,self.crows,self.ccols,1])
+              labels=np.ndarray([len(points_lists),2])
+            
+              for i in range(len(points_lists)):
+                  video_name=points_lists[i][0]
+                
+                  if video_name is not previous_video:
+                      with h5py.File(self.train_path+'/'+video_name+'.h5','r') as video_file:
+                          video_blobs=video_file['channels'][:]
+                          print 'changed'
+    
+                  previous_video=video_name
+                
+                  point_coord=points_lists[i][1]
+                  volume=self.slice_cubes(video_blobs,point_coord)
+                  volume=volume.reshape([9,self.tau,self.crows,self.ccols,1])
+                
+                  label=points_lists[i][2]          # the last item is the label
+                  label=np_utils.to_categorical(label,2)
+                
+                  valid_data[i,...]=volume
+                  labels[i,:]=label
+                
+              valid_data=valid_data.transpose([1,0,2,3,4,5])
+              valid=[valid_data[j,...] for j in range(9)]
+                      
+              return valid,labels
               
+              
+    def test_generator(self):
+         videos_list=sorted(os.listdir(self.test_path))       
+        
+         while 1:
+             for video in videos_list:
+                 video_file=h5py.File(self.test_path+'/'+video,'r')
+                 points_in_video=video_file['augmented_points'][:]
+                 video_blobs=video_file['channels'][:]
+                 augmented_labels=video_file['augmented_labels'][:]
+                 for p in range(points_in_video.shape[0]):
+                    test_data=np.ndarray([1,9,self.tau,self.crows,self.ccols,1])
+                    volume=self.slice_cubes(video_blobs,points_in_video[p,:])
+                    volume=volume.reshape([9,self.tau,self.crows,self.ccols,1])
+                    label=augmented_labels[p]
+                    test_data[0,...]=volume
+                    test_data=test_data.transpose([1,0,2,3,4,5])
+                    yield test_data, label    
+    
     
     def batch_generator(self):
     
-        points_lists=self.generate_cards()
+        points_lists=self.generate_cards()[100:-1]
         num_points=len(points_lists)
         print len(points_lists)
         num_batch=num_points//self.batch_size+1
        
-        previous_video=points_lists[0][0]
+        previous_video=points_lists[0][0]   # video name is in first dim
         print previous_video
     
         with h5py.File(self.train_path+'/'+previous_video+'.h5','r') as video_file:

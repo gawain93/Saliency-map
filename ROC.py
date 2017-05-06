@@ -16,13 +16,16 @@ import matplotlib.pyplot as plt
 
 class ROC(object):
     
-    def __init__(self,test_path,model_path):
+    def __init__(self,test_path,model_path,tau,rows,cols,test_num):
         self.test_path=test_path
         self.model=load_model(model_path)
-     
+        self.tau=tau
+        self.rows=rows
+        self.cols=cols
+        self.test_num=test_num
      
     @staticmethod    
-    def load_test_data(data_path):
+    def load_test_data_default(data_path):
         read_file=h5py.File(data_path,'r')
         cubes=read_file['cubes'][:]
         label=read_file['labels'][:]
@@ -35,9 +38,9 @@ class ROC(object):
         test_labels=np_utils.to_categorical(label,2)
         
         return test_data,test_labels
-      
-      
-    def test_model(self):
+
+          
+    def test_model_default(self):
         test_list=sorted(os.listdir(self.test_path))
         predicted=[None]
         actual=[None]
@@ -57,7 +60,7 @@ class ROC(object):
         predicted=predicted[1:]
         actual=actual[1:]
         return predicted,actual
-    
+        
 
 def test():
     test_path='/mnt/scratch/mikhail/salieny_cnn_data/__3DCNN_preprocessed__/Gazecom_batches/test'
